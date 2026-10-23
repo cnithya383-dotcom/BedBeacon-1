@@ -1,0 +1,513 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BedBeacon | Hospital Bed Finder</title>
+
+<style>
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: Arial, sans-serif;
+  background: #f3f7fc;
+  color: #1e293b;
+}
+
+header {
+  background: #075985;
+  color: white;
+  padding: 24px 18px;
+  text-align: center;
+}
+
+header h1 {
+  margin: 0 0 8px;
+  font-size: 30px;
+}
+
+header p {
+  margin: 0;
+  line-height: 1.5;
+}
+
+.container {
+  max-width: 1050px;
+  margin: auto;
+  padding: 20px;
+}
+
+.stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin-bottom: 22px;
+}
+
+.stat, .panel, .hospital {
+  background: white;
+  border-radius: 12px;
+  padding: 17px;
+  box-shadow: 0 2px 8px #0f172a10;
+}
+
+.stat {
+  text-align: center;
+}
+
+.stat strong {
+  display: block;
+  font-size: 26px;
+  color: #0369a1;
+  margin-bottom: 5px;
+}
+
+.filters {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr;
+  gap: 12px;
+  margin-top: 15px;
+}
+
+input, select, button {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  font-size: 15px;
+}
+
+button {
+  cursor: pointer;
+  border: none;
+  background: #0369a1;
+  color: white;
+  font-weight: bold;
+}
+
+button:hover {
+  background: #075985;
+}
+
+.results-heading {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  align-items: center;
+  margin: 24px 0 14px;
+}
+
+.hospitals {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 15px;
+}
+
+.hospital h3 {
+  margin: 0 0 8px;
+  color: #075985;
+}
+
+.location {
+  color: #64748b;
+  margin: 0 0 14px;
+}
+
+.beds {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 7px;
+  margin: 14px 0;
+}
+
+.bed {
+  background: #eff6ff;
+  border-radius: 8px;
+  text-align: center;
+  padding: 10px 4px;
+  font-size: 12px;
+}
+
+.bed strong {
+  display: block;
+  font-size: 21px;
+  margin-bottom: 4px;
+  color: #0369a1;
+}
+
+.status {
+  display: inline-block;
+  border-radius: 20px;
+  padding: 5px 10px;
+  background: #dcfce7;
+  color: #166534;
+  font-size: 12px;
+  font-weight: bold;
+}
+
+.status.none {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.updated {
+  font-size: 12px;
+  color: #64748b;
+  margin: 12px 0;
+}
+
+.actions {
+  display: flex;
+  gap: 8px;
+}
+
+.actions a, .actions button {
+  flex: 1;
+  text-align: center;
+  text-decoration: none;
+  padding: 11px 7px;
+  border-radius: 8px;
+  font-size: 13px;
+}
+
+.actions a {
+  background: #e0f2fe;
+  color: #075985;
+  font-weight: bold;
+}
+
+.actions button {
+  width: auto;
+}
+
+.message {
+  grid-column: 1 / -1;
+  text-align: center;
+  padding: 25px;
+  background: white;
+  border-radius: 12px;
+  line-height: 1.6;
+}
+
+.notice {
+  font-size: 13px;
+  color: #64748b;
+  line-height: 1.6;
+  margin-top: 20px;
+}
+
+footer {
+  text-align: center;
+  padding: 22px;
+  color: #64748b;
+  font-size: 13px;
+}
+
+@media (max-width: 650px) {
+  .stats {
+    grid-template-columns: 1fr;
+  }
+
+  .filters {
+    grid-template-columns: 1fr;
+  }
+
+  .hospitals {
+    grid-template-columns: 1fr;
+  }
+
+  .results-heading {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}
+</style>
+</head>
+
+<body>
+
+<header>
+  <h1>🏥 BedBeacon</h1>
+  <p>Find hospital bed information faster during emergencies.</p>
+</header>
+
+<main class="container">
+
+  <section class="stats">
+    <div class="stat">
+      <strong id="hospitalCount">0</strong>
+      Sample Hospitals
+    </div>
+    <div class="stat">
+      <strong id="availableCount">0</strong>
+      Beds Available
+    </div>
+    <div class="stat">
+      <strong>3</strong>
+      Bed Categories
+    </div>
+  </section>
+
+  <section class="panel">
+    <h2>Find Hospital Beds</h2>
+    <p>Search by hospital name or area and choose a bed category.</p>
+
+    <div class="filters">
+      <input id="search" type="search"
+        placeholder="Enter hospital name or area">
+
+      <select id="category">
+        <option value="all">All bed categories</option>
+        <option value="general">General beds</option>
+        <option value="icu">ICU beds</option>
+        <option value="oxygen">Oxygen beds</option>
+      </select>
+
+      <select id="availability">
+        <option value="all">All hospitals</option>
+        <option value="available">Beds available</option>
+        <option value="none">No beds available</option>
+      </select>
+    </div>
+
+    <button id="reset" style="margin-top:12px">
+      Reset Search
+    </button>
+  </section>
+
+  <div class="results-heading">
+    <h2>Hospital Results</h2>
+    <span id="resultText" aria-live="polite"></span>
+  </div>
+
+  <section id="hospitalList" class="hospitals"></section>
+
+  <p class="notice">
+    <strong>Important:</strong> This prototype uses fictional sample data
+    for demonstration. Bed counts are not live or verified hospital
+    availability. Always contact the hospital to confirm availability.
+    In an emergency in India, call 112.
+  </p>
+</main>
+
+<footer>
+  Code4Care | BedBeacon — Smart Hospital Bed Availability System
+</footer>
+
+<script>
+"use strict";
+
+const hospitals = [
+  {
+    name: "Sunrise Medical Centre",
+    location: "Demo Area A",
+    general: 12,
+    icu: 3,
+    oxygen: 5,
+    phone: "08000000001"
+  },
+  {
+    name: "CityCare Hospital",
+    location: "Demo Area B",
+    general: 0,
+    icu: 2,
+    oxygen: 1,
+    phone: "08000000002"
+  },
+  {
+    name: "GreenLife Hospital",
+    location: "Demo Area A",
+    general: 8,
+    icu: 0,
+    oxygen: 4,
+    phone: "08000000003"
+  },
+  {
+    name: "Hope Multispeciality Centre",
+    location: "Demo Area C",
+    general: 6,
+    icu: 4,
+    oxygen: 0,
+    phone: "08000000004"
+  }
+];
+
+const search = document.getElementById("search");
+const category = document.getElementById("category");
+const availability = document.getElementById("availability");
+const hospitalList = document.getElementById("hospitalList");
+const resultText = document.getElementById("resultText");
+
+function getBeds(hospital) {
+  if (category.value === "all") {
+    return hospital.general + hospital.icu + hospital.oxygen;
+  }
+
+  return hospital[category.value];
+}
+
+function renderCard(hospital) {
+  const beds = getBeds(hospital);
+  const hasBeds = beds > 0;
+
+  const card = document.createElement("article");
+  card.className = "hospital";
+
+  const title = document.createElement("h3");
+  title.textContent = hospital.name;
+  card.appendChild(title);
+
+  const location = document.createElement("p");
+  location.className = "location";
+  location.textContent = "📍 " + hospital.location;
+  card.appendChild(location);
+
+  const status = document.createElement("span");
+  status.className = "status" + (hasBeds ? "" : " none");
+  status.textContent = hasBeds
+    ? "Demo beds available"
+    : "No demo beds available";
+  card.appendChild(status);
+
+  const bedGrid = document.createElement("div");
+  bedGrid.className = "beds";
+
+  [
+    ["General", hospital.general],
+    ["ICU", hospital.icu],
+    ["Oxygen", hospital.oxygen]
+  ].forEach(function(item) {
+    const bed = document.createElement("div");
+    bed.className = "bed";
+
+    const number = document.createElement("strong");
+    number.textContent = item[1];
+
+    const label = document.createElement("span");
+    label.textContent = item[0];
+
+    bed.appendChild(number);
+    bed.appendChild(label);
+    bedGrid.appendChild(bed);
+  });
+
+  card.appendChild(bedGrid);
+
+  const updated = document.createElement("p");
+  updated.className = "updated";
+  updated.textContent = "Demo data · Not live hospital information";
+  card.appendChild(updated);
+
+  const actions = document.createElement("div");
+  actions.className = "actions";
+
+  const call = document.createElement("a");
+  call.href = "tel:" + hospital.phone;
+  call.textContent = "Call to Confirm";
+  call.setAttribute("aria-label", "Call " + hospital.name +
+    " to confirm bed availability");
+  actions.appendChild(call);
+
+  const alternativeButton = document.createElement("button");
+  alternativeButton.type = "button";
+  alternativeButton.textContent = "Find Alternatives";
+  alternativeButton.addEventListener("click", function() {
+    search.value = "";
+    availability.value = "available";
+    render();
+
+    resultText.textContent =
+      "Showing hospitals with demo beds. Call to confirm.";
+  });
+
+  actions.appendChild(alternativeButton);
+  card.appendChild(actions);
+
+  hospitalList.appendChild(card);
+}
+
+function render() {
+  const query = search.value.trim().toLowerCase();
+
+  const results = hospitals.filter(function(hospital) {
+    const matchesText =
+      (hospital.name + " " + hospital.location)
+        .toLowerCase()
+        .includes(query);
+
+    const beds = getBeds(hospital);
+
+    const matchesAvailability =
+      availability.value === "all" ||
+      (availability.value === "available" && beds > 0) ||
+      (availability.value === "none" && beds === 0);
+
+    return matchesText && matchesAvailability;
+  });
+
+  document.getElementById("hospitalCount").textContent =
+    hospitals.length;
+
+  document.getElementById("availableCount").textContent =
+    hospitals.reduce(function(total, hospital) {
+      return total + getBeds(hospital);
+    }, 0);
+
+  hospitalList.replaceChildren();
+
+  if (results.length === 0) {
+    const message = document.createElement("div");
+    message.className = "message";
+
+    const heading = document.createElement("h3");
+    heading.textContent = "No exact match found";
+
+    const description = document.createElement("p");
+    description.textContent =
+      "Here are alternative hospitals with demo beds available:";
+
+    message.appendChild(heading);
+    message.appendChild(description);
+    hospitalList.appendChild(message);
+
+    const alternatives = hospitals.filter(function(hospital) {
+      return getBeds(hospital) > 0;
+    });
+
+    if (alternatives.length === 0) {
+      description.textContent =
+        "No demo beds are available for this category.";
+    }
+
+    alternatives.forEach(renderCard);
+
+    resultText.textContent =
+      "Showing " + alternatives.length + " alternatives";
+    return;
+  }
+
+  results.forEach(renderCard);
+
+  resultText.textContent =
+    results.length + " hospital(s) found";
+}
+
+search.addEventListener("input", render);
+category.addEventListener("change", render);
+availability.addEventListener("change", render);
+
+document.getElementById("reset").addEventListener("click", function() {
+  search.value = "";
+  category.value = "all";
+  availability.value = "all";
+  render();
+});
+
+render();
+</script>
+
+</body>
+</html>
